@@ -1,0 +1,52 @@
+#Coverage Analysis Steps (method adapted from Wright et al. 2017 NatCommun):
+#Note: All genome fasta files are in the folder "genomes" and all sample fastq files are in the folder "reads".
+#Note: Names of fastq files are of the format "sample_R1.fastq" or "sample_R2.fastq"
+
+# 1. Align reads to each genome using BWA (aln/sampe) and select uniquely mapping reads
+
+#Create genome index with BWA
+for genome in ./genomes/*.fa; do 
+	echo "bwa index $genome"
+	bwa index $genome
+done
+
+#Create suffix array indices for each sample
+for genome in ./genomes/*.fa; do 
+	fname=$(basename "$genome" | awk -F'[_]' '{print $1}')
+	for fastq in ./reads/*.fastq; do 
+		echo "bwa aln -t 12 $genome $fastq > ${fastq%.*}_${fname}.sai" 
+		bwa aln -t 12 $genome $fastq > ${fastq%.*}_${fname}.sai
+	done
+done
+
+#Generate alignments
+python2 bwa_sampe.py ./genomes/ ./reads/
+
+#Select uniquely mapping reads
+for file in ./reads/*_sampe.sam; do 
+	echo "grep 'XT:A:U' $file > ${file%.*}_uniq.sam" 
+	grep 'XT:A:U' $file > ${file%.*}_uniq.sam 
+done
+
+
+# 2. Estimate coverage in 50kb windows using SOAP.coverage
+python2 soap_coverage.py ./genomes/ ./reads/
+
+
+# 3. Calculate and plot male:female coverage fold change
+
+#normalize coverage values: run normalize_coverage.R script
+#move normalized coverage files into separate male and female folders (do this for each analysis that used a different genome)
+
+#extract average coverage for each sex
+python2 extract_coverage.py ./females_folder coverage_females.txt
+python2 extract_coverage.py ./males_folder coverage_males.txt
+
+#calculate coverage fold change
+python2 coverage_fold_change.py coverage_females.txt coverage_males.txt coverage_fold_change.txt
+
+#for analyses that used the X. maculatus or P. reticulata reference genomes and additional step is required to account for inversions on the X chromosome
+python2 inversion_Xmac.py coverage_fold_change.txt coverage_fold_change_inversion.txt
+python2 inversion_Pret.py coverage_fold_change.txt coverage_fold_change_inversion.txt
+
+#moving average plot: run plot_coverage.R
