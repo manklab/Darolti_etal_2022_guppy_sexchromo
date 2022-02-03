@@ -1,0 +1,18 @@
+#X. maculatus chromosome 8 (Xiphophorus_maculatus.X_maculatus-5.0-male.dna_sm.primary_assembly.8) versus P. reticulata reference genome chr12 (NC_024342.1.fas)
+lastdb -u MAM4 -R11 Xiphophorus_maculatus.X_maculatus-5.0-male.dna_sm.primary_assembly.8 Xiphophorus_maculatus.X_maculatus-5.0-male.dna_sm.primary_assembly.8.fa
+lastal -m 10 -C 2 -p HOXD70 Xiphophorus_maculatus.X_maculatus-5.0-male.dna_sm.primary_assembly.8 NC_024342.1.fas | gzip -c > PretRef_vs_Xmac
+gzip -cd PretRef_vs_Xmac | ./maf-eFilter.py -e 0 - > PretRef_vs_Xmac_maffilt
+python maf-dotplot.py -t 1000000 -f 10 -F 7,5.5 --png --no_vlines PretRef_vs_Xmac_maffilt PretRef_vs_Xmac_dotplot
+
+#X. maculatus chromosome 8 (Xiphophorus_maculatus.X_maculatus-5.0-male.dna_sm.primary_assembly.8) versus P. reticulata Quare genome chr12 (QUL-F5_chr12.ragoo.fa)
+lastdb -u MAM4 -R11 Xiphophorus_maculatus.X_maculatus-5.0-male.dna_sm.primary_assembly.8 Xiphophorus_maculatus.X_maculatus-5.0-male.dna_sm.primary_assembly.8.fa
+lastal -m 10 -C 2 -p HOXD70 Xiphophorus_maculatus.X_maculatus-5.0-male.dna_sm.primary_assembly.8 QUL-F5_chr12.ragoo.fa | gzip -c > PretQuare_vs_Xmac
+gzip -cd PretQuare_vs_Xmac | ./maf-eFilter.py -e 0 - > PretQuare_vs_Xmac_maffilt
+python maf-dotplot.py -t 1000000 -f 10 -F 7,5.5 --png --no_vlines ./Xmac_PretQuare/PretQuare_vs_Xmac_maffilt ./Xmac_PretQuare/PretQuare_vs_Xmac_dotplot
+
+#P. reticulata reference genome chr12 (NC_024342.1.fas) versus P. reticulata Quare genome chr12 (QUL-F5_chr12.ragoo.fa)
+lastdb -c -uNEAR NC_024342.1 NC_024342.1.fas
+lastal -m 10 -C 2 NC_024342.1 QUL-F5_chr12.ragoo.fa > PretRef_vs_PretQuare
+last-split -m1 PretRef_vs_PretQuare > PretRef_vs_PretQuare_maffilt
+last-postmask PretRef_vs_PretQuare_maffilt > PretRef_vs_PretQuare_postmask
+python maf-dotplot.py -t 1000000 -f 10 -F 7,5.5 --png --no_vlines PretRef_vs_PretQuare_postmask PretRef_vs_PretQuare_dotplot
