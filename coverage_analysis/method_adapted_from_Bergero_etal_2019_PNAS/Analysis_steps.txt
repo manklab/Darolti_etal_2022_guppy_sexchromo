@@ -1,0 +1,72 @@
+#Coverage Analysis Steps (method adapted from Bergero et al. 2019 PNAS):
+#Note: All genome fasta files are in the folder "genomes" and all sample fastq files are in the folder "reads".
+#Note: Names of fastq files are of the format "sample_R1.fastq" or "sample_R2.fastq"
+
+# 1. Align reads to each genome using BWA
+
+#Create genome index with BWA
+for genome in ./genomes/*.fa; do 
+    echo "bwa index $genome"
+    bwa index $genome
+done
+
+#Map reads to genome with bowtie2. For each sample and genome assembly separately run:
+bwa-mapper.sh sample_R1.fastq sample_R2.fastq genome.fa
+
+#Sort files
+for file in ./reads/*_mem.sam; do 
+	echo "samtools sort -O bam -T ${file%.*}.sort -o ${file%.*}_sort.bam $file"
+	samtools sort -O bam -T ${file%.*}.sort -o ${file%.*}_sort.bam $file
+done
+
+
+# 2. Remove duplicates using Picard Tools
+for file in ./reads/*_mem_sort.bam; do 
+	echo "java -jar /Linux/picard-tools-2.0.1/picard.jar MarkDuplicates I=$file O=${file%.*}_rmdup.bam M=${file%.*}_dupmetrics.txt REMOVE_DUPLICATES=true MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=2000"
+	java -jar /Linux/picard-tools-2.0.1/picard.jar MarkDuplicates I=$file O=${file%.*}_rmdup.bam M=${file%.*}_dupmetrics.txt REMOVE_DUPLICATES=true MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=2000
+	samtools index ${file%.*}_rmdup.bam
+done
+
+
+# 3. Estimate coverage in 50kb windows
+
+#Run samtools depth
+for file in ./reads/*_mem_sort_rmdup.bam; do 
+    echo "samtools depth -a $file > ${file%.*}_samdepth.txt"
+    samtools depth -a $file > ${file%.*}_samdepth.txt
+done
+
+#Split rmdup.bam files into separate chromosomes for each sample
+cd ./reads
+for file in *_mem_sort_rmdup_samdepth.txt; do
+    name=$(basename "$file" | awk -F _mem '{print $1}')
+    mkdir "$name"
+    cd "$name"
+    echo "awk 'NR!=1 {print >$1".txt"}' ../$file"
+    awk 'NR!=1 {print >$1".txt"}' ../$file
+    cd ../
+done
+
+#Get average coverage per 50kb windows and then concatenate all chromosomes into a single file
+#Note: For the P. wingei analyses that used the P. wingei de novo assembly windows of 10kb were used instead.
+python2 get_coverage_50kb_windows.py ./reads/
+python2 concatenate_chromosomes.py ./reads
+
+
+# 4. Calculate and plot male:female coverage fold change
+
+#normalize coverage values: run normalize_coverage.R script
+#move normalized coverage files into separate male and female folders (do this for each analysis that used a different genome)
+
+#extract average coverage for each sex
+python2 extract_coverage.py ./females_folder coverage_females.txt
+python2 extract_coverage.py ./males_folder coverage_males.txt
+
+#calculate coverage fold change
+python2 coverage_fold_change.py coverage_females.txt coverage_males.txt coverage_fold_change.txt
+
+#for analyses that used the X. maculatus or P. reticulata reference genomes and additional step is required to account for inversions on the X chromosome
+python2 inversion_Xmac.py coverage_fold_change.txt coverage_fold_change_inversion.txt
+python2 inversion_Pret.py coverage_fold_change.txt coverage_fold_change_inversion.txt
+
+#moving average plot: run plot_coverage.R
