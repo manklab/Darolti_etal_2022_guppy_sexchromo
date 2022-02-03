@@ -1,0 +1,59 @@
+#SNP Density Analysis Steps (method adapted from Kirkpatrick et al. 2022 G3):
+#Note: All genome fasta files are in the folder "genomes" and all sample fastq files are in the folder "reads".
+#Note: Names of fastq files are of the format "sample_R1.fastq" or "sample_R2.fastq"
+#Requirement: First follow the steps in Analysis_steps.txt from coverage/method_adapted_from_Kirkpatrick_etal_2022_G3
+
+#Prep genomes with samtools faidx
+for genome in ./genomes/*.fa; do 
+	samtools faidx #genome
+done
+
+#Call SNPs
+for genome in ./genomes/*.fa; do
+  for file in ./reads/*bowtie2_sort_rmdup.bam; do
+    echo "samtools mpileup -f $genome -d 100000 -t DP,AD,ADF,ADR,SP -u -v $file > ${file%.*}_mpileup.vcf"
+    samtools mpileup -f $genome -d 100000 -t DP,AD,ADF,ADR,SP -u -v $file > ${file%.*}_mpileup.vcf
+  done
+done
+
+for file in ./reads/*bowtie2_sort_rmdup_mpileup.vcf; do
+  echo "bcftools call -vmO v -o ${file%.*}_rawCalls.vcf $file"
+  bcftools call -vmO v -o ${file%.*}_rawCalls.vcf $file
+done
+
+#Filter SNPs
+for file in ./reads/*rawCalls.vcf; do
+  echo "bcftools filter --exclude 'QUAL < 20' $file -O v -o ${file%.*}_qual20.vcf"
+  bcftools filter --exclude 'QUAL < 20' $file -O v -o ${file%.*}_qual20.vcf
+done
+
+for file in ./reads/*qual20.vcf; do
+  echo "vcftools --vcf $file --remove-indels --min-meanDP 3 --min-alleles 2 --max-alleles 2 --recode --recode-INFO-all -c > ${file%.*}_vcffilt.vcf"
+  vcftools --vcf $file --remove-indels --min-meanDP 3 --min-alleles 2 --max-alleles 2 --recode --recode-INFO-all -c > ${file%.*}_vcffilt.vcf
+done
+
+#Remove private SNPs and singletons. Run separately for each sample and genome.
+python2 rmv_fixed_snps.py sample_vcffilt.vcf output_folder
+
+#Get SNP counts per 50kb windows
+#Note: For P. wingei analyses that used the P. wingei genome assembly we used 10kb windows instead.
+for genome in ./genomes/*_windows50kb.txt; do
+  for file in ./reads/*_vcffilt2.vcf; do
+    echo "bedtools coverage -a $genome -b $file > ${file%.*}_50kb.txt"
+    bedtools coverage -a $genome -b $file > ${file%.*}_50kb.txt
+  done
+done
+
+#Normalize SNP density: run normalize_snpdensity.R script
+#move normalized files into separate male and female folders (do this for each analysis that used a different genome)
+
+#extract average snp density for each sex
+python2 extract_snpdensity.py ./Females snpdensity_females.txt
+python2 extract_snpdensity.py ./Males snpdensity_males.txt
+
+#calculate fold change
+python2 snpdensity_fold_change.py snpdensity_females.txt snpdensity_males.txt snpdensity_fc.txt
+
+#split files into autosomes and sex chromosomes
+python2 spit_autosomes_sexchromosomes.py snpdensity_fc.txt snpdensity_fc_autosomes.txt snpdensity_fc_sexchromosomes.txt
+#density plots: run plot_snpdensity.R
