@@ -32,7 +32,7 @@ MFCI975cov <- quantile(MFpermutescov, c(.025, .5, .975))[[3]]
 
 #plot sex chromosome coverage data
 datacovSexChr <- datacovsorted[datacovsorted$Chromosome==sexchromosome,]
-smoothlinefccov = movingaverage(datacovSexChr$MFLogaverage,windowsize)
+smoothlinefccov = movingaverage(datacovSexChr$MFLogaverage,windowsizeMovAv)
 paneldatacov <- as.data.frame(smoothlinefccov)
 paneldatacov$startmb <- datacovSexChr$WindowStart/1000000
 paneldatacov <- na.omit(paneldatacov)
