@@ -1,0 +1,55 @@
+#SNP Density Analysis Steps (method adapted from Bergero et al. 2019 PNAS):
+#Note: All genome fasta files are in the folder "genomes" and all sample fastq files are in the folder "reads".
+#Note: Names of fastq files are of the format "sample_R1.fastq" or "sample_R2.fastq"
+#Requirement: First follow the steps in Analysis_steps.txt from coverage/method_adapted_from_Bergero_etal_2019_PNAS
+
+#Prep genomes with samtools faidx and GATK
+for genome in ./genomes/*.fa; do 
+	samtools faidx $genome
+	gatk CreateSequenceDictionary -R $genome $genome
+done
+
+#Call SNPs with GATK
+for genome in ./genomes/*.fa; do
+  for file in ./reads/*mem_sort_rmdup.bam; do
+    echo "gatk HaplotypeCaller --input $file --output ${file%.*}_gatk_hapcall.vcf --reference $genome --emit-ref-confidence GVCF -stand-call-conf 30"
+    gatk HaplotypeCaller --input $file --output ${file%.*}_gatk_hapcall.vcf --reference $genome --emit-ref-confidence GVCF -stand-call-conf 30
+  done
+done
+
+for genome in ./genomes/*.fa; do
+  for file in ./reads/*gatk_hapcall.vcf; do
+    echo "gatk GenotypeGVCFs -R $genome -V $file -O ${file%.*}_gengvcf.vcf"
+    gatk GenotypeGVCFs -R $genome -V $file -O ${file%.*}_gengvcf.vcf
+  done
+done
+
+for genome in ./genomes/*.fa; do
+  for file in ./reads/*gengvcf.vcf; do
+    echo "gatk SelectVariants -R $genome -V $file -O ${file%.*}_selectvar.vcf --restrict-alleles-to BIALLELIC --select-type-to-include SNP --selectExpressions "QUAL > 30.0 && DP > 20""
+    gatk SelectVariants -R $genome -V $file -O ${file%.*}_selectvar.vcf --restrict-alleles-to BIALLELIC --select-type-to-include SNP --selectExpressions "QUAL > 30.0 && DP > 20"
+  done
+done
+
+#Get SNP counts per 50kb windows
+#Note: For P. wingei analyses that used the P. wingei genome assembly we used 10kb windows instead.
+for genome in ./genomes/*_windows50kb.txt; do
+  for file in ./reads/*select.vcf; do
+    echo "bedtools coverage -a $genome -b $file > ${file%.*}_50kb.txt"
+    bedtools coverage -a $genome -b $file > ${file%.*}_50kb.txt
+  done
+done
+
+#Normalize SNP density: run normalize_snpdensity.R script
+#move normalized files into separate male and female folders (do this separately for each analysis that used a different genome)
+
+#extract average snp density for each sex
+python2 extract_snpdensity.py ./Females snpdensity_females.txt
+python2 extract_snpdensity.py ./Males snpdensity_males.txt
+
+#calculate fold change
+python2 snpdensity_fold_change.py snpdensity_females.txt snpdensity_males.txt snpdensity_fc.txt
+
+#split files into autosomes and sex chromosomes
+python2 split_autosomes_sexchromosomes.py snpdensity_fc.txt snpdensity_fc_autosomes.txt snpdensity_fc_sexchromosomes.txt
+#density plots: run plot_snpdensity.R
