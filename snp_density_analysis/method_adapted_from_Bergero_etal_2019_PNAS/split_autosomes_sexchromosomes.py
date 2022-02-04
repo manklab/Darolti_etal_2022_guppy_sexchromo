@@ -29,7 +29,7 @@ def main():
         with open(args.output_sexchromosomes, "w") as sex:
             with open(args.infile, "r") as infile:
                 for line in infile:
-                    if line.startswith("Number"):
+                    if line.startswith("Chromosome"):
                         auto.write(line)
                         sex.write(line)
                     else:
