@@ -5,7 +5,7 @@
 
 #Prep genomes with samtools faidx
 for genome in ./genomes/*.fa; do 
-	samtools faidx #genome
+	samtools faidx $genome
 done
 
 #Call SNPs
@@ -28,12 +28,12 @@ for file in ./reads/*rawCalls.vcf; do
 done
 
 for file in ./reads/*qual20.vcf; do
-  echo "vcftools --vcf $file --remove-indels --min-meanDP 3 --min-alleles 2 --max-alleles 2 --recode --recode-INFO-all -c > ${file%.*}_vcffilt.vcf"
-  vcftools --vcf $file --remove-indels --min-meanDP 3 --min-alleles 2 --max-alleles 2 --recode --recode-INFO-all -c > ${file%.*}_vcffilt.vcf
+  echo "vcftools --vcf $file --remove-indels --min-meanDP 3 --min-alleles 2 --max-alleles 2 --recode --recode-INFO-all -c > ${file%.*}_vcffilt1.vcf"
+  vcftools --vcf $file --remove-indels --min-meanDP 3 --min-alleles 2 --max-alleles 2 --recode --recode-INFO-all -c > ${file%.*}_vcffilt1.vcf
 done
 
-#Remove private SNPs and singletons. Run separately for each sample and genome.
-python2 rmv_fixed_snps.py sample_vcffilt.vcf output_folder
+#Remove private SNPs and singletons.
+python2 rmv_fixed_snps.py ./reads ./reads
 
 #Get SNP counts per 50kb windows
 #Note: For P. wingei analyses that used the P. wingei genome assembly we used 10kb windows instead.
@@ -55,5 +55,5 @@ python2 extract_snpdensity.py ./Males snpdensity_males.txt
 python2 snpdensity_fold_change.py snpdensity_females.txt snpdensity_males.txt snpdensity_fc.txt
 
 #split files into autosomes and sex chromosomes
-python2 spit_autosomes_sexchromosomes.py snpdensity_fc.txt snpdensity_fc_autosomes.txt snpdensity_fc_sexchromosomes.txt
+python2 split_autosomes_sexchromosomes.py snpdensity_fc.txt snpdensity_fc_autosomes.txt snpdensity_fc_sexchromosomes.txt
 #density plots: run plot_snpdensity.R

@@ -1,13 +1,11 @@
-#!/usr/bin/python2.6
+#!/usr/bin/python2.7
 # -*- coding: utf-8 -*-
+"This script reads in vcf files and removes private SNPs and singletons"
 #==============================================================================
 import argparse
 import sys
 import os
-from subprocess import Popen, list2cmdline
-from itertools import product
 from collections import defaultdict
-
 #==============================================================================
 #Command line options==========================================================
 #==============================================================================
@@ -42,7 +40,7 @@ def read_file(infile, dicty):
 	return dicty
 
 def write_output(infile, sites_to_include):
-	outfile = os.path.basename(infile).split(".")[0] + "_filt2.vcf"
+	outfile = os.path.basename(infile).split(".")[0] + "_vcffilt2.vcf"
 	with open(outfile, "w") as out:
 		with open(infile, "r") as infile:
 			for line in infile:

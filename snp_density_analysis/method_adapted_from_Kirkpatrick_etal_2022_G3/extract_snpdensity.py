@@ -1,5 +1,6 @@
-#!/usr/bin/python2.6
+#!/usr/bin/python2.7
 # -*- coding: utf-8 -*-
+"This script reads snp density information from multiple samples and calculates and outputs average snp density for each chromosome block"
 #==============================================================================
 import argparse
 import sys
@@ -10,8 +11,8 @@ import numpy as np
 #Command line options==========================================================
 #==============================================================================
 parser = argparse.ArgumentParser()
-parser.add_argument("coverage", type=str, nargs="+",
-                    help="")
+parser.add_argument("infolder", type=str, nargs="+",
+                    help="A folder with individual snp density files")
 parser.add_argument("outfile", type=str,
                     help="")
 # This checks if the user supplied any arguments. If not, help is printed.
@@ -27,41 +28,33 @@ def list_folder(infolder):
     '''Returns a list of all files in a folder with the full path'''
     return [os.path.join(infolder, f) for f in os.listdir(infolder) if f.endswith(".txt")]
 
-def extract_depth(source, depthdict):
-    #name, bpcovered/length, coverage, averagedepth (number of reads covering a base/coverage)
+def extract_snpdensity(source, snpdict):
     with open(source, "r") as infile:
         for line in infile:
             line = line.rstrip()
             line = line.split()
             if len(line) == 6:
-                depth = line[5]
-                # depth = float(depth)
-                depth = float(depth)
+                snpdensity = float(line[5])
                 scaffold = line[1] + "_" + line[2] + "_" + line[3]
-                depthdict[scaffold].append(depth)
-    return depthdict
+                snpdict[scaffold].append(snpdensity)
+    return snpdict
 
-# creates dictionary of sequence (scaff/contig) and its depth (just as in def extract_depth) but it also calculates 
-# average depth for each sequence
-def average_depth(coverage_depth):
+# creates dictionary of sequence (scaff/contig) and its snp density (just as in def extract_depth) but it also calculates average snp density for each sequence
+def average_snpdensity(snpdensity):
     averagedict = defaultdict(list)
-    for sequence in coverage_depth:
-        coverage_list = []
-        for depth in coverage_depth[sequence]:
-            coverage_list.append(depth)
-        sum_coverage_list = sum(coverage_list)
-        average = (sum_coverage_list/len(coverage_list))
-
-        # coverage_list[0] is the coverage of the first individual 
-        #  (i think it assigns coverage_list[0] first in order to have a starting point to keep adding coverages)
-        coverage_values = coverage_list[0]
-        for cov in coverage_list[1:]:
-            coverage_values = str(coverage_values)+"|"+str(cov)
-
+    for sequence in snpdensity:
+        snplist = []
+        for value in snpdensity[sequence]:
+            snplist.append(value)
+        sum_snplist = sum(snplist)
+        average = (sum_snplist/len(snplist))
+        snp_values = snplist[0]
+        for value in snplist[1:]:
+            snp_values = str(snp_values)+"|"+str(value)
         logaverage = np.log2(average+1)
-        sumdepth = sum_coverage_list
-        averagedict[sequence].append(coverage_values)
-        averagedict[sequence].append(sumdepth)
+        sumsnp = sum_snplist
+        averagedict[sequence].append(snp_values)
+        averagedict[sequence].append(sumsnp)
         averagedict[sequence].append(average)
         averagedict[sequence].append(logaverage)
     return averagedict
@@ -70,29 +63,30 @@ def average_depth(coverage_depth):
 # #Main==========================================================================
 # #==============================================================================
 def main():
-    #get files
-    if len(args.coverage) == 1:
-        if os.path.isdir(args.coverage[0]):
-            infiles = list_folder(args.coverage[0])
-        else:
-            infiles = args.coverage
-    else:
-        infiles = args.coverage
 
-    #extract coverage
-    depthdict = defaultdict(list)
+    #get files
+    if len(args.infolder) == 1:
+        if os.path.isdir(args.infolder[0]):
+            infiles = list_folder(args.infolder[0])
+        else:
+            infiles = args.infolder
+    else:
+        infiles = args.infolder
+
+    #extract snp density
+    snpdensitydict = defaultdict(list)
     for infile in infiles:
         print infile 
-        coverage_depth = extract_depth(infile, depthdict)
-        print "Number of chromosome blocks with coverage =", len(coverage_depth)
+        snpdensity = extract_snpdensity(infile, snpdensitydict)
+        print "Number of chromosome blocks with snp density =", len(snpdensity)
 
-    #take average
-    average = average_depth(coverage_depth)
-    print "Number of chromosome blocks with average coverage =", len(average)
+    #calculate average snp density
+    average = average_snpdensity(snpdensity)
+    print "Number of chromosome blocks with average snp density =", len(average)
 
     with open(args.outfile, "w") as outfile:
         print args.outfile
-        header = "Chromosome,WindowStart,WindowEnd,CovList,Sum,Average,Logaverage"
+        header = "Chromosome,WindowStart,WindowEnd,SnpDensityList,Sum,Average,Logaverage"
         outfile.write(header)
         outfile.write("\n")
         for sequence in average:

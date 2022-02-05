@@ -4,7 +4,7 @@ rm(list=ls())
 ls() 
 
 #Load data
-infiles <- Sys.glob("./reads/*50kb.txt")
+infiles <- Sys.glob("./reads/*vcffilt2_50kb.txt")
 for (infile in infiles) {
 	sample <- read.csv(infile, sep="\t", header=F)
 	#sort file by chromosome and position
