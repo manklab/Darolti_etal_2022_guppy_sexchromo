@@ -28,18 +28,18 @@ done
 
 #Extract sequence names
 for file in ./reads/*.pro; do
-  echo "cut -f $file | uniq > ${file%.*}.list"
-  cut -f $file | uniq > ${file%.*}.list
+  echo "cut -f 3 $file | uniq > ${file%.*}.list"
+  cut -f 3 $file | uniq > ${file%.*}.list
 done
 
 #Filter for minimum site coverage of 10
 for file in ./reads/*.pro; do
-  echo "cat $file | awk '(($2+$3+$4+$5)>10 || /Contig/ )' > ${file%.*}.pro.sites10"
-  cat $file | awk '(($2+$3+$4+$5)>10 || /Contig/ )' > ${file%.*}_sites10.pro
+  echo "cat $file | awk '(($2+$3+$4+$5)>10 || /Contig/)' > ${file%.*}_sites10.pro"
+  cat $file | awk '(($2+$3+$4+$5)>10 || /Contig/)' > ${file%.*}_sites10.pro
 done
 
 #Filter for SNP frequency > 0.3 x site coverage
-for file in ./reads/*sites10.pro; do
+for file in ./reads/*_sites10.pro; do
   echo "cat $file | awk '(($2+$3+$4+$5)>10 || /Contig/)' | awk '(/Contig/ || ($2>(0.3*($2+$3+$4+$5)) && ($3>(0.3*($2+$3+$4+$5)))) || ($2>(0.3*($2+$3+$4+$5)) && ($4>(0.3*($2+$3+$4+$5)))) || ($2>(0.3*($2+$3+$4+$5)) && ($5>(0.3*($2+$3+$4+$5)))) || ($3>(0.3*($2+$3+$4+$5)) && ($4>(0.3*($2+$3+$4+$5)))) || ($3>(0.3*($2+$3+$4+$5)) && ($5>(0.3*($2+$3+$4+$5)))) || ($4>(0.3*($2+$3+$4+$5)) && ($5>(0.3*($2+$3+$4+$5)))))' > ${file%.*}_SNP30.pro"
   cat $file | awk '(($2+$3+$4+$5)>10 || /Contig/)' | awk '(/Contig/ || ($2>(0.3*($2+$3+$4+$5)) && ($3>(0.3*($2+$3+$4+$5)))) || ($2>(0.3*($2+$3+$4+$5)) && ($4>(0.3*($2+$3+$4+$5)))) || ($2>(0.3*($2+$3+$4+$5)) && ($5>(0.3*($2+$3+$4+$5)))) || ($3>(0.3*($2+$3+$4+$5)) && ($4>(0.3*($2+$3+$4+$5)))) || ($3>(0.3*($2+$3+$4+$5)) && ($5>(0.3*($2+$3+$4+$5)))) || ($4>(0.3*($2+$3+$4+$5)) && ($5>(0.3*($2+$3+$4+$5)))))' > ${file%.*}_SNP30.pro
 done
@@ -48,7 +48,7 @@ done
 python2 get_gene_coordinates.py genome.gtf genome_coordinates.txt
 
 #Extract SNPs. Run separately for each sample and genome.
-python2 extract_SNPs.py sample.list sample_sites10.pro sample_sites10_SNP30.pro geneome_coordinates.txt output_folder
+python2 extract_SNPs.py sample.list sample_sites10.pro sample_sites10_SNP30.pro genome_coordinates.txt output_folder
 
 #Get SNP density per gene. Run separately for each sample and genome.
 python2 snp_density.py sample.bygene genome_coordinates.txt sample.bygene_density
@@ -65,5 +65,5 @@ python2 snpdensity_fold_change.py ./Females_merged/snpdensity_females.txt ./Male
 python2 add_row_numbers.py snpdensity_fc.txt snpdensity_fc_rownumbs.txt
 
 #split files into autosomes and sex chromosomes
-python2 spit_autosomes_sexchromosomes.py snpdensity_fc_rownumbs.txt snpdensity_fc_autosomes.txt snpdensity_fc_sexchromosomes.txt
+python2 split_autosomes_sexchromosomes.py snpdensity_fc_rownumbs.txt snpdensity_fc_autosomes.txt snpdensity_fc_sexchromosomes.txt
 #density plots: run plot_snpdensity.R

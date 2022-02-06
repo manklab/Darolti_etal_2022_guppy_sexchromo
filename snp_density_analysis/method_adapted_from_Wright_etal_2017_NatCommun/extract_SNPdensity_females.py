@@ -1,5 +1,6 @@
 #!/usr/bin/python2.7
 # -*- coding: utf-8 -*-
+"This script reads snp density information from multiple samples and calculates and outputs average snp density for each chromosome block"
 #==============================================================================
 import argparse
 import sys
@@ -11,9 +12,9 @@ import numpy as np
 #==============================================================================
 parser = argparse.ArgumentParser()
 parser.add_argument("SNP", type=str,
-                    help="A file of scaffolds and SNPs")
+                    help="A folder of SNP files for each sample")
 parser.add_argument("outfilepath", type=str,
-                    help="")
+                    help="Output file path")
 # This checks if the user supplied any arguments. If not, help is printed.
 if len(sys.argv) == 1:
     parser.print_help()
@@ -36,16 +37,13 @@ def list_files(current_dir):
                 file_list.append(f)
     return file_list
 
-# def get_file_dict(infolders, popdict):
 def get_file_dict(infolders):
     filedictionary = {}
     for infolder in infolders:
         name = os.path.basename(infolder)
-        # print name
         infiles = list_files(infolder)
         for infile in infiles:
-            # print infile
-            if infile.endswith("_norm"):
+            if infile.endswith("normalized.txt"):
                 filedictionary[name] = infile
     print "No. of samples =", len(filedictionary)
     return filedictionary
@@ -123,7 +121,7 @@ def main():
 
     outfilename = args.outfilepath+"/snpdensity_females.txt"
     with open(outfilename, "w") as outfile:
-        header = "Scaffold,Gene,Sumsites,Sumsnps,Snpdensity,LogSnpdensity"
+        header = "ChromosomeBlock,Gene,Sumsites,Sumsnps,Snpdensity,LogSnpdensity"
         outfile.write(header)
         outfile.write("\n")
         for gene in average:

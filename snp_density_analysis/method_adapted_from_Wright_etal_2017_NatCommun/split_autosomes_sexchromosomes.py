@@ -1,21 +1,19 @@
-#!/usr/bin/python2.6
+#!/usr/bin/python2.7
 # -*- coding: utf-8 -*-
+"This script is used to split the snpdensity_fc.txt file into separate files for the autosomes and the sex chromosomes"
 #==============================================================================
 import argparse
 import sys
-import os
-from collections import defaultdict
-from collections import OrderedDict
 #==============================================================================
 #Command line options==========================================================
 #==============================================================================
 parser = argparse.ArgumentParser()
 parser.add_argument("infile", type=str,
-                    help="")
-parser.add_argument("out_auto", type=str,
-                    help="")
-parser.add_argument("out_sex", type=str,
-                    help="")
+                    help="The snpdensity_fc.txt file")
+parser.add_argument("output_autosomes", type=str,
+                    help="Output file containing only the autosomes")
+parser.add_argument("output_sexchromosomes", type=str,
+                    help="Output file containing only the sex chromosomes")
 # This checks if the user supplied any arguments. If not, help is printed.
 if len(sys.argv) == 1:
     parser.print_help()
@@ -23,26 +21,21 @@ if len(sys.argv) == 1:
 # Shorten the access to command line arguments.
 args = parser.parse_args()
 #==============================================================================
-#Functions=====================================================================
-#==============================================================================
-def list_folder(infolder):
-    '''Returns a list of all files in a folder with the full path'''
-    return [os.path.join(infolder, f) for f in os.listdir(infolder) if not f.endswith(".DS_Store")]
-#==============================================================================
 #Main==========================================================================
 #==============================================================================
 def main():
 
-    with open(args.out_auto, "w") as auto:
-        with open(args.out_sex, "w") as sex:
+    with open(args.output_autosomes, "w") as auto:
+        with open(args.output_sexchromosomes, "w") as sex:
             with open(args.infile, "r") as infile:
                 for line in infile:
                     if line.startswith("Number"):
                         auto.write(line)
                         sex.write(line)
                     else:
-                        chromo = line.split(",")[1]
-                        if chromo == "NC_024342.1":
+                        chromosome = line.split(",")[1]
+                        # The sex chromosome is labelled "NC_024342.1" for the P. reticulata genomes and "8" for the X. maculatus and P. wingei genomes.
+                        if chromosome == "NC_024342.1":
                             sex.write(line)
                         else:
                             auto.write(line)
