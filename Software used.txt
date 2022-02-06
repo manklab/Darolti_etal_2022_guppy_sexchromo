@@ -1,0 +1,14 @@
+Bcftools v1.3.1
+Bedtools v2.29.2
+Bowtie2 v2.2.9
+Bow2pro v0.1
+BWA v0.7.15
+GATK v4.1.9.0
+Last v1256
+Picard tools v2.0.1
+Python2 v2.7.5
+Python3 v3.6.8
+R v4.0.5
+Samtools v1.3.1
+Soap.coverage v2.7.7
+Vcftools v0.1.12
