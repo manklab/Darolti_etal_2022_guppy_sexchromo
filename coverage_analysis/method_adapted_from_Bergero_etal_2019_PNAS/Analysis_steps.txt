@@ -10,7 +10,7 @@ for genome in ./genomes/*.fa; do
     bwa index $genome
 done
 
-#Map reads to genome with bowtie2. For each sample and genome assembly separately run:
+#Map reads to genome with BWA. For each sample and genome assembly separately run:
 bwa-mapper.sh sample_R1.fastq sample_R2.fastq genome.fa
 
 #Sort files
